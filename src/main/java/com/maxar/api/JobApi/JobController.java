@@ -18,19 +18,15 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 @RestController
-@ResponseBody
-@EnableAsync
 public class JobController {
+
     @GetMapping("/job")
-    @Async
     public Job job(@RequestParam(value = "id", defaultValue = "") String id) {
-        UUID uuid = UUID.randomUUID();
-        return new Job(uuid);
+        return new Job(UUID.randomUUID());
     }
 
     private int getTimeout() {
         Random random = new Random();
         return (random.nextInt(9) + 1);
     }
-
 }

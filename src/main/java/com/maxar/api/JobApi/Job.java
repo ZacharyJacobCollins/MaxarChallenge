@@ -6,12 +6,11 @@ public class Job {
 
     private UUID jobId;
 
-    public Job(UUID id) {
-       this.jobId = id;
+    public Job(UUID jobId) {
+       this.jobId = jobId;
     }
 
-    public UUID getId() {
+    public UUID getJobId() {
         return this.jobId;
     }
-
 }

@@ -1,18 +1,18 @@
 package com.maxar.api.JobClient;
-import com.maxar.api.JobApi.Job;
-import okhttp3.*;
+import okhttp3.Call;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
+import org.json.JSONException;
+import org.json.JSONObject;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.ApplicationListener;
 import org.springframework.stereotype.Component;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
-import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -21,12 +21,15 @@ public class JobClient implements ApplicationListener<ApplicationReadyEvent> {
 
     public JobClient() {}
 
-    public CompletableFuture<Job> getJob(String id){
-        OkHttpClient client = new OkHttpClient();
-
-        CompletableFuture<Job> future = CompletableFuture.supplyAsync(new Supplier<Job>() {
+    /**
+     * Send a request for a single job
+     * @param id
+     * @return
+     */
+    public CompletableFuture<JSONObject> getJob(String id){
+        CompletableFuture<JSONObject> future = CompletableFuture.supplyAsync(new Supplier<JSONObject>() {
             @Override
-            public Job get() {
+            public JSONObject get() {
                 OkHttpClient client = new OkHttpClient();
                 String queryParam = "/job?id=" + 1;
 
@@ -37,14 +40,14 @@ public class JobClient implements ApplicationListener<ApplicationReadyEvent> {
                 try {
                     Call call = client.newCall(request);
                     try (Response response = call.execute()) {
-                        System.out.println(response);
-                        System.out.println(response.body());
-                        System.out.println("res" + response.body().string());
+                        String str = response.body().string();
+
+                        JSONObject jsonObj = new JSONObject(str);
+                        return jsonObj;
+
+//                        return new Job(UUID.fromString((String) jsonObj.get("jobId")));
                     }
-                    Job job = new Job(UUID.randomUUID());
-                    System.out.println(job);
-                    return job;
-                } catch (IOException e) {
+                } catch (IOException | JSONException e) {
                     e.printStackTrace();
                     return null;
                 }
@@ -55,28 +58,48 @@ public class JobClient implements ApplicationListener<ApplicationReadyEvent> {
 
     }
 
+    /**
+     *  Run method on application startup
+     *  Sends all api requests for individual jobs
+     *  aggregate responses and print responses to console
+     */
     @Override
     public void onApplicationEvent(ApplicationReadyEvent applicationReadyEvent) {
-        // move to method, gen number of calls
-        List<String> ids = new ArrayList<>();
-        int numberOfApiCalls = new Random().nextInt(2000);
-
-        for (int i = 0; i<numberOfApiCalls; i++) {
-            ids.add(Integer.toString(i));
-        }
-
-        List<CompletableFuture<Job>> futures =
+        List<String> ids = getRequestIds();
+        List<CompletableFuture<JSONObject>> futures =
                 ids.stream()
                         .map(id -> getJob(id))
                         .collect(Collectors.toList());
 
-        List<Job> result =
+        List<JSONObject> result =
                 futures.stream()
                         .map(CompletableFuture::join)
                         .collect(Collectors.toList());
 
-        result.forEach((item) ->
-            System.out.println(item.getId())
-        );
+        JSONObject jsonObject = new JSONObject();
+
+        try {
+            jsonObject.put("jobs", result);
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+
+        System.out.println(jsonObject);
+    }
+
+    /**
+     * Generate a random number of request ids
+     * Number of requests are bound between 1000 and 2000
+     */
+    private List<String> getRequestIds() {
+        // move to method, gen number of calls
+        List<String> ids = new ArrayList<>();
+        int numberOfApiCalls = new Random().nextInt(1000) + 1000;
+
+        for (int i = 0; i < numberOfApiCalls; i++) {
+            ids.add(Integer.toString(i));
+        }
+
+        return ids;
     }
 }
