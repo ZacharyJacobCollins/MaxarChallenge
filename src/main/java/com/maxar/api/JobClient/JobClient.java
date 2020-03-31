@@ -1,89 +1,76 @@
 package com.maxar.api.JobClient;
+import com.maxar.api.JobApi.Job;
 import okhttp3.*;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.ApplicationListener;
 import org.springframework.stereotype.Component;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 @Component
 public class JobClient implements ApplicationListener<ApplicationReadyEvent> {
 
     public JobClient() {}
 
-    /**
-     * Builds all request objects
-     * @return
-     */
-    private List getRequests() {
-        List builtRequests = new ArrayList<Request>();
-        Random random = new Random();
-        int numberOfRequests = (random.nextInt(2000));
-        AtomicInteger counter = new AtomicInteger(numberOfRequests);
+    public CompletableFuture<Job> getJob(String id){
+        OkHttpClient client = new OkHttpClient();
 
-        for (int j = numberOfRequests; j >= 0; j--) {
+        CompletableFuture<Job> future = CompletableFuture.supplyAsync(new Supplier<Job>() {
+            @Override
+            public Job get() {
+                OkHttpClient client = new OkHttpClient();
+                String queryParam = "/job?id=" + 1;
 
-            String queryParam = "/job?id=" + counter;
+                Request request = new Request.Builder()
+                        .url("http://localhost:8080" + queryParam)
+                        .build();
 
-            Request request = new Request.Builder()
-                    .url("http://localhost:8080" + queryParam)
-                    .build();
+                try {
+                    final Response response = client.newCall(request).execute();
+                    System.out.println(response.body());
+                    Job job = new Job(response.body().string());
+                    return job;
+                } catch (IOException e) {
+                    e.printStackTrace();
+                    return null;
+                }
+            }
+        });
 
-            builtRequests.add(request);
-            counter.decrementAndGet();
-        }
+        return future;
 
-        return builtRequests;
     }
 
-    /**
-     * Fire this method on application ready
-     * Instantiates an okhttp client, sends and aggregates requests
-     * Finally prints json response
-     * @param applicationReadyEvent
-     */
     @Override
     public void onApplicationEvent(ApplicationReadyEvent applicationReadyEvent) {
-        OkHttpClient client = new OkHttpClient();
-        List builtRequests = this.getRequests();
-        List results = new ArrayList<>(2000);
+        // move to method, gen number of calls
+        List<String> ids = new ArrayList<>();
+        int numberOfApiCalls = new Random().nextInt(2000);
 
-
-
-        System.out.println("built requests size: " + builtRequests.size());
-        for (AtomicInteger i = new AtomicInteger(0); i.get() < builtRequests.size(); i.getAndIncrement()) {
-
-            Request loadedRequest = (Request) builtRequests.get(i.get());
-            Call call = client.newCall(loadedRequest);
-
-            call.enqueue(new Callback() {
-                public void onResponse(Call call, Response response) {
-                    results.add(response.body());
-
-                    System.out.println("built requests size: " + builtRequests.size() + "results" + results.size());
-                    if (results.size() == builtRequests.size()) {
-                        System.out.println("Here in this thing");
-
-                        int q = 0;
-                        for (Iterator<String> iterator = results.iterator(); iterator.hasNext();) {
-                            String string = iterator.next();
-                            if (!string.isEmpty()) {
-                                System.out.println(string + q);
-                                q++;
-                            }
-                        }
-
-                    }
-                }
-
-                public void onFailure(Call call, IOException e) {
-                    System.out.println("Failure");
-                }
-            });
+        for (int i = 0; i<numberOfApiCalls; i++) {
+            ids.add(Integer.toString(i));
         }
+
+        List<CompletableFuture<Job>> futures =
+                ids.stream()
+                        .map(id -> getJob(id))
+                        .collect(Collectors.toList());
+
+        List<Job> result =
+                futures.stream()
+                        .map(CompletableFuture::join)
+                        .collect(Collectors.toList());
+
+        result.forEach((item) ->
+            System.out.println(item.getId())
+        );
     }
 }

@@ -19,16 +19,13 @@ import java.util.concurrent.TimeUnit;
 
 @RestController
 @ResponseBody
+@EnableAsync
 public class JobController {
-    public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
-        TimeUnit.SECONDS.sleep(getTimeout());
-        return false;
-    }
-
     @GetMapping("/job")
+    @Async
     public Job job(@RequestParam(value = "id", defaultValue = "") String id) {
         UUID uuid = UUID.randomUUID();
-        return new Job(uuid);
+        return new Job("uuid");
     }
 
     private int getTimeout() {
