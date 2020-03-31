@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Random;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @Component
@@ -19,56 +20,60 @@ public class JobClient implements ApplicationListener<ApplicationReadyEvent> {
      * @return
      */
     private List getRequests() {
-        List requests = new ArrayList();
-        int numberOfRequests = 1010;
-        final int[] i = {0};
-        for ( int j = 0; j < numberOfRequests; j++) {
-            String queryParam = "/job?id=" + i[0];
+        List builtRequests = new ArrayList<Request>();
+        Random random = new Random();
+        int numberOfRequests = (random.nextInt(2000));
+        AtomicInteger counter = new AtomicInteger(numberOfRequests);
+
+        for (int j = numberOfRequests; j >= 0; j--) {
+
+            String queryParam = "/job?id=" + counter;
+
             Request request = new Request.Builder()
                     .url("http://localhost:8080" + queryParam)
                     .build();
 
-            requests.add(request);
-            i[0]++;
+            builtRequests.add(request);
+            counter.decrementAndGet();
         }
-        return requests;
+
+        return builtRequests;
     }
 
     /**
      * Fire this method on application ready
      * Instantiates an okhttp client, sends and aggregates requests
-     * finally prints json response
+     * Finally prints json response
      * @param applicationReadyEvent
      */
     @Override
     public void onApplicationEvent(ApplicationReadyEvent applicationReadyEvent) {
         OkHttpClient client = new OkHttpClient();
-        List requests = this.getRequests();
-        List results = new ArrayList<>();
-        AtomicInteger counter = new AtomicInteger(0);
+        List builtRequests = this.getRequests();
+        List results = new ArrayList<>(2000);
 
-        System.out.println("here" + requests.size());
 
-        for (int i = 0; i < requests.size(); i++) {
-            System.out.println(i);
 
-            Call call = client.newCall((Request) requests.get(i));
-            int finalI = i;
+        System.out.println("built requests size: " + builtRequests.size());
+        for (AtomicInteger i = new AtomicInteger(0); i.get() < builtRequests.size(); i.getAndIncrement()) {
+
+            Request loadedRequest = (Request) builtRequests.get(i.get());
+            Call call = client.newCall(loadedRequest);
 
             call.enqueue(new Callback() {
-                public void onResponse(Call call, Response response) throws IOException {
-                    results.add(response.body().string());
-                    counter.incrementAndGet();
+                public void onResponse(Call call, Response response) {
+                    results.add(response.body());
 
-                    System.out.println("received" + counter.get());
-
-                    if (counter.get() == 1010) {
+                    System.out.println("built requests size: " + builtRequests.size() + "results" + results.size());
+                    if (results.size() == builtRequests.size()) {
                         System.out.println("Here in this thing");
 
+                        int q = 0;
                         for (Iterator<String> iterator = results.iterator(); iterator.hasNext();) {
                             String string = iterator.next();
                             if (!string.isEmpty()) {
-                                System.out.println(string);
+                                System.out.println(string + q);
+                                q++;
                             }
                         }
 

@@ -1,44 +1,39 @@
 package com.maxar.api.JobApi;
 
 import org.springframework.scheduling.annotation.Async;
+import org.springframework.scheduling.annotation.AsyncResult;
+import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import java.util.Random;
 import java.util.UUID;
-import java.util.concurrent.*;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 @RestController
 @ResponseBody
 public class JobController {
+    public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
+        TimeUnit.SECONDS.sleep(getTimeout());
+        return false;
+    }
 
     @GetMapping("/job")
-    @Async("asyncExecutor")
-    public Object job(@RequestParam(value = "id", defaultValue = "") String id) throws InterruptedException, TimeoutException, ExecutionException {
-        // Get random between 1 and 10
-        Random random = new Random();
-        int num = (random.nextInt(9) + 1) * 1000;
-
-
-        // Sleep between 1 and 10 seconds
+    public Job job(@RequestParam(value = "id", defaultValue = "") String id) {
         UUID uuid = UUID.randomUUID();
+        return new Job(uuid);
+    }
 
-        CompletableFuture completableFuture = CompletableFuture.supplyAsync(() -> {
-            try {
-                Thread.sleep(num);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-            return new Job(uuid);
-        });
-
-        long timeout = num;
-
-        System.out.println("timeout is" + timeout);
-
-        return completableFuture.get(timeout, TimeUnit.SECONDS);
+    private int getTimeout() {
+        Random random = new Random();
+        return (random.nextInt(9) + 1);
     }
 
 }
