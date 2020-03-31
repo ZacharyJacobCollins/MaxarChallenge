@@ -13,6 +13,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -31,27 +32,34 @@ public class JobClient implements ApplicationListener<ApplicationReadyEvent> {
             @Override
             public JSONObject get() {
                 OkHttpClient client = new OkHttpClient();
-                String queryParam = "/job?id=" + 1;
+                String queryParam = "/job?id=" + id;
 
                 Request request = new Request.Builder()
-//                        .url("http://localhost:8080" + queryParam)
-                        .url("https://postman-echo.com/get?foo1=bar1&foo2=bar2")
+                        .url("http://localhost:8080" + queryParam)
                         .build();
 
-                try {
-                    Call call = client.newCall(request);
-                    try (Response response = call.execute()) {
-                        String str = response.body().string();
+                int count = 0;
+                int maxTries = 3;
+                while(true) {
+                    try {
+                        Call call = client.newCall(request);
+                        try (Response response = call.execute()) {
+                            String str = response.body().string();
 
-                        System.out.println(str);
+                            System.out.println(str);
 
-                        JSONObject jsonObj = new JSONObject("{}");
-//                        JSONObject jsonObj = new JSONObject(str);
-                        return jsonObj;
+//                        JSONObject jsonObj = new JSONObject("{}");
+                            JSONObject jsonObj = new JSONObject(str);
+                            return jsonObj;
+
+                        } catch (CompletionException completionException) {
+                            completionException.printStackTrace();
+                            return null;
+                        }
+                    } catch (IOException | JSONException e) {
+                        e.printStackTrace();
+                        return null;
                     }
-                } catch (IOException | JSONException e) {
-                    e.printStackTrace();
-                    return null;
                 }
             }
         });
@@ -97,7 +105,7 @@ public class JobClient implements ApplicationListener<ApplicationReadyEvent> {
         // move to method, gen number of calls
         List<String> ids = new ArrayList<>();
 //        int numberOfApiCalls = new Random().nextInt(1000) + 1000;
-        int numberOfApiCalls = 100;
+        int numberOfApiCalls = 4000;
 
         for (int i = 0; i < numberOfApiCalls; i++) {
             ids.add(Integer.toString(i));
