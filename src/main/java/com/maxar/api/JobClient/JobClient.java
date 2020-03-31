@@ -4,6 +4,7 @@ import okhttp3.*;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.ApplicationListener;
 import org.springframework.stereotype.Component;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -34,9 +35,14 @@ public class JobClient implements ApplicationListener<ApplicationReadyEvent> {
                         .build();
 
                 try {
-                    final Response response = client.newCall(request).execute();
-                    System.out.println(response.body());
-                    Job job = new Job(response.body().string());
+                    Call call = client.newCall(request);
+                    try (Response response = call.execute()) {
+                        System.out.println(response);
+                        System.out.println(response.body());
+                        System.out.println("res" + response.body().string());
+                    }
+                    Job job = new Job(UUID.randomUUID());
+                    System.out.println(job);
                     return job;
                 } catch (IOException e) {
                     e.printStackTrace();

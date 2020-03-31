@@ -4,18 +4,14 @@ import java.util.UUID;
 
 public class Job {
 
-//    private UUID jobId;
-    private String jobId;
+    private UUID jobId;
 
-    public Job(String id) {
+    public Job(UUID id) {
        this.jobId = id;
     }
 
-//    public UUID getId() {
-//        return this.jobId;
-//    }
-
-    public String getId() {
+    public UUID getId() {
         return this.jobId;
     }
+
 }

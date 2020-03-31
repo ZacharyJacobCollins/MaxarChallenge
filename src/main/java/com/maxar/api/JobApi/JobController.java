@@ -25,7 +25,7 @@ public class JobController {
     @Async
     public Job job(@RequestParam(value = "id", defaultValue = "") String id) {
         UUID uuid = UUID.randomUUID();
-        return new Job("uuid");
+        return new Job(uuid);
     }
 
     private int getTimeout() {
