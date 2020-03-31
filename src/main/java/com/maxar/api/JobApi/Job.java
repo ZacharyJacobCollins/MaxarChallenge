@@ -1,14 +1,16 @@
 package com.maxar.api.JobApi;
 
+import java.util.UUID;
+
 public class Job {
 
-    private String jobId;
+    private UUID jobId;
 
-    public Job(String id) {
+    public Job(UUID id) {
        this.jobId = id;
     }
 
-    public String getId() {
+    public UUID getId() {
         return this.jobId;
     }
 }
