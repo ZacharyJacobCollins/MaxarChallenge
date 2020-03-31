@@ -34,7 +34,8 @@ public class JobClient implements ApplicationListener<ApplicationReadyEvent> {
                 String queryParam = "/job?id=" + 1;
 
                 Request request = new Request.Builder()
-                        .url("http://localhost:8080" + queryParam)
+//                        .url("http://localhost:8080" + queryParam)
+                        .url("https://postman-echo.com/get?foo1=bar1&foo2=bar2")
                         .build();
 
                 try {
@@ -42,10 +43,11 @@ public class JobClient implements ApplicationListener<ApplicationReadyEvent> {
                     try (Response response = call.execute()) {
                         String str = response.body().string();
 
-                        JSONObject jsonObj = new JSONObject(str);
-                        return jsonObj;
+                        System.out.println(str);
 
-//                        return new Job(UUID.fromString((String) jsonObj.get("jobId")));
+                        JSONObject jsonObj = new JSONObject("{}");
+//                        JSONObject jsonObj = new JSONObject(str);
+                        return jsonObj;
                     }
                 } catch (IOException | JSONException e) {
                     e.printStackTrace();
@@ -94,7 +96,8 @@ public class JobClient implements ApplicationListener<ApplicationReadyEvent> {
     private List<String> getRequestIds() {
         // move to method, gen number of calls
         List<String> ids = new ArrayList<>();
-        int numberOfApiCalls = new Random().nextInt(1000) + 1000;
+//        int numberOfApiCalls = new Random().nextInt(1000) + 1000;
+        int numberOfApiCalls = 100;
 
         for (int i = 0; i < numberOfApiCalls; i++) {
             ids.add(Integer.toString(i));
