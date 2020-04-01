@@ -23,8 +23,6 @@ If you'd like to build your own jar run the following command from the root of t
 mvn install
 ```
 
-End with an example of getting some data out of the system or using it for a little demo
-
 ## Running the project
 
 You may run the jar included in the project
