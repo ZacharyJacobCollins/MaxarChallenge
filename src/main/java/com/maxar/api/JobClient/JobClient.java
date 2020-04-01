@@ -22,44 +22,38 @@ public class JobClient implements ApplicationListener<ApplicationReadyEvent> {
 
     public JobClient() {}
 
+    private String baseUri = "http://localhost:8080";
+
     /**
      * Send a request for a single job
      * @param id
      * @return
      */
     public CompletableFuture<JSONObject> getJob(String id){
+        Request request = this.getRequest(id);
+
         CompletableFuture<JSONObject> future = CompletableFuture.supplyAsync(new Supplier<JSONObject>() {
             @Override
             public JSONObject get() {
-                OkHttpClient client = new OkHttpClient();
-                String queryParam = "/job?id=" + id;
 
-                Request request = new Request.Builder()
-                        .url("http://localhost:8080" + queryParam)
-                        .build();
+                try {
+                    OkHttpClient client = new OkHttpClient();
+                    Call call = client.newCall(request);
+                    try (Response response = call.execute()) {
+                        String responseBody = response.body().string();
 
-                int count = 0;
-                int maxTries = 3;
-                while(true) {
-                    try {
-                        Call call = client.newCall(request);
-                        try (Response response = call.execute()) {
-                            String str = response.body().string();
+                        JSONObject jsonObj = new JSONObject(responseBody);
+                        System.out.println("here");
+                        System.out.println(jsonObj.get("jobId") != null);
+                        return jsonObj;
 
-                            System.out.println(str);
-
-//                        JSONObject jsonObj = new JSONObject("{}");
-                            JSONObject jsonObj = new JSONObject(str);
-                            return jsonObj;
-
-                        } catch (CompletionException completionException) {
-                            completionException.printStackTrace();
-                            return null;
-                        }
-                    } catch (IOException | JSONException e) {
-                        e.printStackTrace();
+                    } catch (CompletionException completionException) {
+                        completionException.printStackTrace();
                         return null;
                     }
+                } catch (IOException | JSONException e) {
+                    e.printStackTrace();
+                    return null;
                 }
             }
         });
@@ -76,6 +70,7 @@ public class JobClient implements ApplicationListener<ApplicationReadyEvent> {
     @Override
     public void onApplicationEvent(ApplicationReadyEvent applicationReadyEvent) {
         List<String> ids = getRequestIds();
+
         List<CompletableFuture<JSONObject>> futures =
                 ids.stream()
                         .map(id -> getJob(id))
@@ -98,19 +93,31 @@ public class JobClient implements ApplicationListener<ApplicationReadyEvent> {
     }
 
     /**
-     * Generate a random number of request ids
-     * Number of requests are bound between 1000 and 2000
+     * Generate a random number of request ids between 1000 and 2000
      */
     private List<String> getRequestIds() {
         // move to method, gen number of calls
         List<String> ids = new ArrayList<>();
-//        int numberOfApiCalls = new Random().nextInt(1000) + 1000;
-        int numberOfApiCalls = 4000;
+        int numberOfApiCalls = new Random().nextInt(1000) + 1000;
 
         for (int i = 0; i < numberOfApiCalls; i++) {
             ids.add(Integer.toString(i));
         }
 
         return ids;
+    }
+
+    /**
+     * Given a string id of the request generate an
+     * okhttp request object with an id query param
+     * @param id
+     * @return request
+     */
+    private Request getRequest(String id) {
+        String queryParam = "/randomWaitEndpoint?id=" + id;
+        Request request = new Request.Builder()
+                .url(this.baseUri + queryParam)
+                .build();
+        return request;
     }
 }
